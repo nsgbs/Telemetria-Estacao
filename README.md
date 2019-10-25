@@ -1,0 +1,2 @@
+# telemetria
+telemetria general
