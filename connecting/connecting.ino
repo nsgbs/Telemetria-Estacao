@@ -1,3 +1,4 @@
+// codigo base de conexão com redes 802.x de martinius96
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include "esp_wpa2.h"
