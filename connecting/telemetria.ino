@@ -1,5 +1,6 @@
 // codigo base de conexão com redes 802.x de martinius96
 // ======== BIBLIOTECAS ========
+#include "ThingSpeak.h"
 #include "DHT.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
@@ -18,6 +19,9 @@
 #define EAP_PASSWORD "password" //senha Eduroam a ser definida
 const char* ssid = "eduroam"; // Eduroam SSID
 WiFiClientSecure client;
+unsigned long valorAtualChannel = 000000; // ID de canal valor atual
+unsigned long valorMediaChannel = 000000; // ID de canal valor média
+const char * myWriteAPIKey = "API KEY";
 
 // configuracao DHT
 #define tipo_DHT DHT22
@@ -91,16 +95,11 @@ void mkConnection(){
   }
 }
 
-void setup() 
-{
-  dht.begin();
-  mkConnection();
+void startThingspeak(){
+
 }
 
-void loop(){
-
-/*A cada 15 s, realiza as leituras e salva nas respecitvas variaveis*/  
-  
+void leituraSensores(){
   iPV = ler_i(pino_iPV,razao_iPV);
   media_iPV = media_iPV + iPV;
   
@@ -121,7 +120,38 @@ void loop(){
   
   temp = dht.readTemperature();
   media_temp = media_temp + temp;
-  
+}
+
+void thingspeakWrite(){
+  //atual
+  ThingSpeak.writeField(valorAtualChannel, 1, iPV, myWriteAPIKey);
+  ThingSpeak.writeField(valorAtualChannel, 2, vPV, myWriteAPIKey);
+  ThingSpeak.writeField(valorAtualChannel, 3, iBat, myWriteAPIKey);
+  ThingSpeak.writeField(valorAtualChannel, 4, vBat, myWriteAPIKey);
+  ThingSpeak.writeField(valorAtualChannel, 5, iAC, myWriteAPIKey);
+  ThingSpeak.writeField(valorAtualChannel, 6, vAC, myWriteAPIKey);
+  ThingSpeak.writeField(valorAtualChannel, 7, temp, myWriteAPIKey);
+  //média
+  ThingSpeak.writeField(valorMediaChannel, 1, media_iPV, myWriteAPIKey);
+  ThingSpeak.writeField(valorMediaChannel, 2, media_vPV, myWriteAPIKey);
+  ThingSpeak.writeField(valorMediaChannel, 3, media_iBat, myWriteAPIKey);
+  ThingSpeak.writeField(valorMediaChannel, 4, media_vBat, myWriteAPIKey);
+  ThingSpeak.writeField(valorMediaChannel, 5, media_iAC, myWriteAPIKey);
+  ThingSpeak.writeField(valorMediaChannel, 6, media_vAC, myWriteAPIKey);
+  ThingSpeak.writeField(valorMediaChannel, 7, media_temp, myWriteAPIKey);
+}
+
+void setup() 
+{
+  dht.begin();
+  mkConnection();
+  ThingSpeak.begin(client);
+}
+
+void loop(){
+
+/*A cada 15 s, realiza as leituras e salva nas respecitvas variaveis*/  
+  leituraSensores();
   i++; //conta quantas leituras foram feitas
   delay(15000); //para o codigo por 15 s
 
@@ -133,9 +163,7 @@ void loop(){
 /*caso tenha passado 10 min do ultimo envio de dados, as medias sao calculadas e os valores enviados para o servidor*/
   if (millis() - tempo >= T){
     calcular_media();
-    //IMPLEMENTAR AQUI A CAONEXAO COM O SERVIDOR THINGSPEAK
-    //IMPLEMENTAR AQUI O ENVIO DE INFORMACOES: MEDIAS E ULTIMOS VALORES LIDOS
-      
+    thingspeakWrite();
     tempo = millis(); //registra o tempo em que ocorreu o envio de dados 
     i = 0; //reinicia o contador
   }
