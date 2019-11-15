@@ -15,6 +15,7 @@
 #define pino_iAC 32 /*isso é um valor qualquer. adicionar valor definitivo*/
 #define pino_vAC 33 /*isso é um valor qualquer. adicionar valor definitivo*/
 #define pino_temp 25 /*isso é um valor qualquer. adicionar valor definitivo*/
+#define EAP_ANONYMOUS_IDENTITY ""
 #define EAP_IDENTITY "login" //login do Eduroam a ser definido
 #define EAP_PASSWORD "password" //senha Eduroam a ser definida
 const char* ssid = "eduroam"; // Eduroam SSID
@@ -83,7 +84,7 @@ void calcular_media(){
 void mkConnection(){
   WiFi.disconnect(true);
   WiFi.mode(WIFI_STA);
- esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)EAP_ANONYMOUS_IDENTITY, strlen(EAP_ANONYMOUS_IDENTITY)); 
+  esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)EAP_ANONYMOUS_IDENTITY, strlen(EAP_ANONYMOUS_IDENTITY)); 
   esp_wifi_sta_wpa2_ent_set_username((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY));
   esp_wifi_sta_wpa2_ent_set_password((uint8_t *)EAP_PASSWORD, strlen(EAP_PASSWORD));
   esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT(); //set config settings to default
@@ -92,8 +93,8 @@ void mkConnection(){
     while (WiFi.status() != WL_CONNECTED) {
         delay(500); //definir uma solução para quando não conseguir conectar
     }
-  }
-}
+ }
+
 
 void startThingspeak(){
 
@@ -168,6 +169,3 @@ void loop(){
     i = 0; //reinicia o contador
   }
 }
-
-
-
