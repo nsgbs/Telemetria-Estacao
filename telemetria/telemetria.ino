@@ -1,4 +1,5 @@
 // ======== BIBLIOTECAS ========
+#include "value_setup.h"
 #include "ThingSpeak.h" 
 #include "DHT.h"
 #include <WiFi.h>
@@ -16,12 +17,12 @@
 #define pino_vAC 33 /*isso é um valor qualquer. adicionar valor definitivo*/
 #define pino_temp 25 /*isso é um valor qualquer. adicionar valor definitivo*/
 WiFiClient client;
-char ssid[] = "";
-char pass[] = "";
-unsigned long valorAtualChannel = 000000; // ID de canal valor atual
-unsigned long valorMediaChannel = 000000; // ID de canal valor média
-const char * myWriteAPIKeyA = "API A";
-const char * myWriteAPIKeyM = "API M";
+char ssid[] = SSIDVALUE;
+char pass[] = PASSVALUE;
+unsigned long valorAtualChannel = VACVALUE; // ID de canal valor atual
+unsigned long valorMediaChannel = VMCVVALUE; // ID de canal valor média
+const char * myWriteAPIKeyA = APIAVALUE;
+const char * myWriteAPIKeyM = APIMVALUE;
 
 // configuracao DHT
 #define tipo_DHT DHT22
