@@ -6,6 +6,7 @@
 #include <WiFiClientSecure.h>
 #include "esp_wpa2.h"
 #include <Wire.h>
+#include <HTTPClient.h>
 
 // ======== DEFINIÇÕES ======== 
 #define pino_iPV 36 /*isso é um valor qualquer. adicionar valor definitivo*/
@@ -16,13 +17,16 @@
 #define pino_vAC 33 /*isso é um valor qualquer. adicionar valor definitivo*/
 #define pino_temp 25 /*isso é um valor qualquer. adicionar valor definitivo*/
 #define EAP_ANONYMOUS_IDENTITY ""
-#define EAP_IDENTITY "login" //login do Eduroam a ser definido
-#define EAP_PASSWORD "password" //senha Eduroam a ser definida
+#define EAP_IDENTITY "" //login do Eduroam a ser definido
+#define EAP_PASSWORD "" //senha Eduroam a ser definida
 const char* ssid = "eduroam"; // Eduroam SSID
 WiFiClientSecure client;
-unsigned long valorAtualChannel = 000000; // ID de canal valor atual
-unsigned long valorMediaChannel = 000000; // ID de canal valor média
-const char * myWriteAPIKey = "API KEY";
+const char* serverThing = "api.thingspeak.com";
+  
+unsigned long valorAtualChannel = 00000; // ID de canal valor atual
+unsigned long valorMediaChannel = 00000; // ID de canal valor média
+String myWriteAPIKeyM = "API";
+String myWriteAPIKeyA = "API";
 
 // configuracao DHT
 #define tipo_DHT DHT22
@@ -53,7 +57,7 @@ const float razao_vBat = 1; /*isso é um valor qualquer. adicionar valor definit
 const float razao_iAC = 1; /*isso é um valor qualquer. adicionar valor definitivo que dependera do AMPLIFICADOR DE TENSAO, caso haja*/
 const float razao_vAC = 1; /*isso é um valor qualquer. adicionar valor definitivo que dependera do DIVISOR DE TENSAO, caso haja*/
 // tempos e contadores
-unsigned long T = 600000; //periodo de calculo da media: 600000 ms = 600 s = 10 min
+unsigned long T = 30000; //600000; //periodo de calculo da media: 600000 ms = 600 s = 10 min
 unsigned long tempo = 0;
 int i = 0; //conta quantas leituras houve dentro do periodo de calculo da media
 
@@ -124,29 +128,89 @@ void leituraSensores(){
 }
 
 void thingspeakWrite(){
-  //atual
-  ThingSpeak.writeField(valorAtualChannel, 1, iPV, myWriteAPIKey);
-  ThingSpeak.writeField(valorAtualChannel, 2, vPV, myWriteAPIKey);
-  ThingSpeak.writeField(valorAtualChannel, 3, iBat, myWriteAPIKey);
-  ThingSpeak.writeField(valorAtualChannel, 4, vBat, myWriteAPIKey);
-  ThingSpeak.writeField(valorAtualChannel, 5, iAC, myWriteAPIKey);
-  ThingSpeak.writeField(valorAtualChannel, 6, vAC, myWriteAPIKey);
-  ThingSpeak.writeField(valorAtualChannel, 7, temp, myWriteAPIKey);
-  //média
-  ThingSpeak.writeField(valorMediaChannel, 1, media_iPV, myWriteAPIKey);
-  ThingSpeak.writeField(valorMediaChannel, 2, media_vPV, myWriteAPIKey);
-  ThingSpeak.writeField(valorMediaChannel, 3, media_iBat, myWriteAPIKey);
-  ThingSpeak.writeField(valorMediaChannel, 4, media_vBat, myWriteAPIKey);
-  ThingSpeak.writeField(valorMediaChannel, 5, media_iAC, myWriteAPIKey);
-  ThingSpeak.writeField(valorMediaChannel, 6, media_vAC, myWriteAPIKey);
-  ThingSpeak.writeField(valorMediaChannel, 7, media_temp, myWriteAPIKey);
+
+if (client.connect(serverThing,80))   //   "184.106.153.149" or api.thingspeak.com
+  {  
+         String postStr = myWriteAPIKeyM;
+         postStr +="&field1=";
+         postStr += String(media_iPV);
+         postStr +="&field2=";
+         postStr += String(media_vPV);
+         postStr +="&field3=";
+         postStr += String(media_iBat);
+         postStr +="&field4=";
+         postStr += String(media_vBat);
+         postStr +="&field5=";
+         postStr += String(media_iAC);
+         postStr +="&field6=";
+         postStr += String(media_vAC);
+         postStr +="&field7=";
+         postStr += String(media_temp);
+         postStr += "\r\n\r\n";
+
+         client.print("POST /update HTTP/1.1\n");
+         client.print("Host: api.thingspeak.com\n");
+         client.print("Connection: close\n");
+         client.print("X-THINGSPEAKAPIKEY: "+myWriteAPIKeyM+"\n");
+         client.print("Content-Type: application/x-www-form-urlencoded\n");
+         client.print("Content-Length: ");
+         client.print(postStr.length());
+         client.print("\n\n");
+         client.print(postStr);
+         Serial.println("client M ok");
+         
+    }
+client.stop();
+
+int results = client.connect(serverThing,80);  //   "184.106.153.149" or api.thingspeak.com
+if (results)  {  
+         String postStr = myWriteAPIKeyA;
+         postStr +="&field1=";
+         postStr += String(iPV);
+         postStr +="&field2=";
+         postStr += String(vPV);
+         postStr +="&field3=";
+         postStr += String(iBat);
+         postStr +="&field4=";
+         postStr += String(vBat);
+         postStr +="&field5=";
+         postStr += String(iAC);
+         postStr +="&field6=";
+         postStr += String(vAC);
+         postStr +="&field7=";
+         postStr += String(temp);
+         postStr += "\r\n\r\n";
+
+         client.print("POST /update HTTP/1.1\n");
+         client.print("Host: api.thingspeak.com\n");
+         client.print("Connection: close\n");
+         client.print("X-THINGSPEAKAPIKEY: "+myWriteAPIKeyA+"\n");
+         client.print("Content-Type: application/x-www-form-urlencoded\n");
+         client.print("Content-Length: ");
+         client.print(postStr.length());
+         client.print("\n\n");
+         client.print(postStr);
+         Serial.println("client A ok");
+
+    }
+client.stop();
+Serial.println("results = ");
+Serial.println(results);
 }
 
 void setup() 
 {
+  Serial.begin(115200);
   dht.begin();
-  mkConnection();
+  Serial.println("dht");
   ThingSpeak.begin(client);
+  Serial.println("thingspeak ok");
+  mkConnection();
+  Serial.println("connection ok");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+
 }
 
 void loop(){
@@ -155,16 +219,18 @@ void loop(){
   leituraSensores();
   i++; //conta quantas leituras foram feitas
   delay(15000); //para o codigo por 15 s
-
+  Serial.println("leitura");
 /*checa se a funcao millis() reiniciou (o que ocorrera a cada 30 dias) e zera o contador de tempo*/
   if (tempo > millis()){
     tempo=0;
   }
 
+  
 /*caso tenha passado 10 min do ultimo envio de dados, as medias sao calculadas e os valores enviados para o servidor*/
   if (millis() - tempo >= T){
     calcular_media();
     thingspeakWrite();
+    Serial.println("Thingspeak sent");
     tempo = millis(); //registra o tempo em que ocorreu o envio de dados 
     i = 0; //reinicia o contador
   }
