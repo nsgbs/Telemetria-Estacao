@@ -8,14 +8,17 @@
 #include <Wire.h>
 #include <HTTPClient.h>
 
+// ======== DEBUG ========
+#define DEBUG_CODE 1 //0 desabilita o debug
+
 // ======== DEFINIÇÕES ========
-#define pino_iPV 36 /*isso é um valor qualquer. adicionar valor definitivo*/
-#define pino_vPV 10 /*isso é um valor qualquer. adicionar valor definitivo*/
-#define pino_iBat 34 /*isso é um valor qualquer. adicionar valor definitivo*/
-#define pino_vBat 35 /*isso é um valor qualquer. adicionar valor definitivo*/
-#define pino_iAC 32 /*isso é um valor qualquer. adicionar valor definitivo*/
-#define pino_vAC 33 /*isso é um valor qualquer. adicionar valor definitivo*/
-#define pino_temp 25 /*isso é um valor qualquer. adicionar valor definitivo*/
+#define pino_iPV 36 /*OK*/
+#define pino_vPV 39 /*OK*/
+#define pino_iBat 34 /*OK*/
+#define pino_vBat 35 /*OK*/
+#define pino_iAC 32 /*OK*/
+#define pino_vAC 33 /*OK*/
+#define pino_temp 5 /*isso é um valor qualquer. adicionar valor definitivo*/
 WiFiClient client;
 char ssid[] = SSIDVALUE;
 char pass[] = PASSVALUE;
@@ -59,6 +62,9 @@ int i = 0; //conta quantas leituras houve dentro do periodo de calculo da media
 
 // ======== FUNCOES ========
 float ler_v(int pino, float razao) {
+  if (DEBUG_CODE){
+    Serial.println("RAW READ PIN " + String(pino) + ": " + String(analogRead(pino)));
+    }
   float v = (analogRead(pino) * 3.3 / 1023) * razao;
   return v;
 }
@@ -117,18 +123,19 @@ void thingspeakWrite() {
   //atuais
   ThingSpeak.setField(1, iPV);
   ThingSpeak.setField(2, vPV);
-  Serial.println(vPV);
   ThingSpeak.setField(3, iBat);
   ThingSpeak.setField(4, vBat); 
   ThingSpeak.setField(5, iAC);
   ThingSpeak.setField(6, vAC);
   ThingSpeak.setField(7, temp);
+  if (DEBUG_CODE){
   int x = ThingSpeak.writeFields(valorAtualChannel, myWriteAPIKeyA);
   if(x == 200){
     Serial.println("Channel a update successful.");
   }
   else{
     Serial.println("Problem updating channel. HTTP error code " + String(x));
+  }
   }
   delay(20000);//
   //medias
@@ -139,24 +146,41 @@ void thingspeakWrite() {
   ThingSpeak.setField(5, media_iAC);
   ThingSpeak.setField(6, media_vAC);
   ThingSpeak.setField(7, media_temp);
-  int y = ThingSpeak.writeFields(valorMediaChannel, myWriteAPIKeyM);
-  if(y == 200){
+  if (DEBUG_CODE){
+  int x = ThingSpeak.writeFields(valorMediaChannel, myWriteAPIKeyM);
+  if(x == 200){
     Serial.println("Channel m update successful.");
   }
   else{
-    Serial.println("Problem updating channel. HTTP error code " + String(y));
+    Serial.println("Problem updating channel. HTTP error code " + String(x));
+  }
   }
 }
 
 void setup()
 {
+  if (DEBUG_CODE)
   Serial.begin(115200);
   pinMode(pino_vPV, INPUT);
+  pinMode(pino_iPV, INPUT);
+  pinMode(pino_iBat, INPUT);
+  pinMode(pino_vBat, INPUT);
+  pinMode(pino_iAC, INPUT);
+  pinMode(pino_vAC, INPUT);
+  if (DEBUG_CODE)
+  Serial.println("Pinmode pass");
   dht.begin();
+  if (DEBUG_CODE)
+  Serial.println("DHT pass");
   ThingSpeak.begin(client);
+  if (DEBUG_CODE)
+  Serial.println("thingspeak begin client pass");
   mkConnection();
-  
-
+  if (DEBUG_CODE){
+  Serial.println("Wifi connection pass");
+  String LocalIP = String() + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
+  Serial.println("IP: " + LocalIP);
+  }
 
 }
 
@@ -164,8 +188,21 @@ void loop() {
  
     //A cada 15 s, realiza as leituras e salva nas respecitvas variaveis
     leituraSensores();
+    if (DEBUG_CODE){
+      Serial.println("Leituras sensores:");
+      Serial.println("iPV no pino " + String(pino_iPV) + ": " + iPV);
+      Serial.println("vPV no pino " + String(pino_vPV) + ": " + vPV);
+      Serial.println("iBat no pino " + String(pino_iBat) + ": " + iBat);
+      Serial.println("vBat no pino " + String(pino_vBat) + ": " + vBat); 
+      Serial.println("iAC no pino " + String(pino_iAC) + ": " + iAC);
+      Serial.println("vAC no pino " + String(pino_vAC) + ": " + vAC);
+    }
     i++; //conta quantas leituras foram feitas
-    delay(15000); //para o codigo por 15 s
+    if (DEBUG_CODE)
+    delay(1000);//para melhorar o debug, fazer uma leitura mais rapida
+    else
+    delay(15000);//para o codigo por 15 s
+    
     //checa se a funcao millis() reiniciou (o que ocorrera a cada 30 dias) e zera o contador de tempo
     if (tempo > millis()){
       tempo=0;
@@ -175,7 +212,8 @@ void loop() {
     //caso tenha passado 10 min do ultimo envio de dados, as medias sao calculadas e os valores enviados para o servidor
     if (millis() - tempo >= T){
       calcular_media();
-      thingspeakWrite();
+      //thingspeakWrite();
+      if (DEBUG_CODE)
       Serial.println("Thingspeak sent");
       tempo = millis(); //registra o tempo em que ocorreu o envio de dados
       i = 0; //reinicia o contador
